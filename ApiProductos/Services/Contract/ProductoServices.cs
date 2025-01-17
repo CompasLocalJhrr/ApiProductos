@@ -20,9 +20,15 @@ namespace ApiProductos.Services.Contract
             try
             {
                 List<Producto> list = new List<Producto>();
-                list = await _productoRepository.GetList();
+                var spResult = await _productoRepository.spGetList();
 
-                result.ListData = list;
+                if (!spResult.Success)
+                {
+                    result.SetError(spResult.Message);
+                    return result;
+                } 
+
+                result.ListData = spResult.ListData;
 
                 return result;
             }
@@ -55,9 +61,15 @@ namespace ApiProductos.Services.Contract
                     Stock = model.Stock
                 };
 
-                var produto = await _productoRepository.Create(producto);
+                var spResult = await _productoRepository.spCreate(producto);
 
-                result.Data = produto;
+                if (!spResult.Success)
+                {
+                    result.SetError(spResult.Message);
+                    return result; 
+                }
+
+                result.Data = spResult.Data;
                 return result;
             }
             catch (Exception ex)
@@ -73,6 +85,7 @@ namespace ApiProductos.Services.Contract
             var result = new ResponseDto<Producto>();
             try
             {
+                // Validamos que el producto existe ante de mandarlo a eliminar
                 var producto = await _productoRepository.GetById(id);
 
                 if (producto == null)
@@ -81,7 +94,14 @@ namespace ApiProductos.Services.Contract
                     return result;
                 }
 
-                await _productoRepository.Delete(producto);
+                // Se llama a metodo Delete en el Repository que ejecuta el SP
+                var resultDelete = await _productoRepository.Delete(producto);
+
+                // Si hubo algo error dentro del SP se pasa respuesta general
+                if (!resultDelete.Success)
+                {
+                    result.SetError(resultDelete.Message);
+                }
 
                 return result;
             }
